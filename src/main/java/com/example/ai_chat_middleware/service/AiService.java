@@ -1,9 +1,11 @@
 package com.example.ai_chat_middleware.service;
 
+import com.example.ai_chat_middleware.model.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -27,14 +29,22 @@ public class AiService {
                 .build();
     }
 
-    public String sendMessage(String systemPrompt, String userMessage){
+    public String sendMessage(String systemPrompt, String userMessage, List<Message> history) {
+
+        List<Map<String, String>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
+
+        for (Message m : history) {
+            messages.add(Map.of("role", m.role(), "content", m.content()));
+        }
+
+        messages.add(Map.of("role", "user", "content", userMessage));
+
         Map<String, Object> body = Map.of(
                 "model", model,
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemPrompt),
-                        Map.of("role", "user", "content", userMessage)
-                )
+                "messages", messages
         );
+
         Map response = restClient.post()
                 .body(body)
                 .retrieve()
@@ -43,7 +53,6 @@ public class AiService {
         List<Map> choices = (List<Map>) response.get("choices");
         Map message = (Map) choices.get(0).get("message");
         return (String) message.get("content");
-
     }
 
 }
